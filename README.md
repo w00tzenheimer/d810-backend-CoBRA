@@ -16,9 +16,12 @@ That is the whole installation. d810 discovers this package automatically; no
 configuration, no `COBRA_ROOT`, no CMake, no C++23 toolchain on the user's
 machine.
 
-> **Requires `d810-ng >= 1.0.0`, which is not released yet.**
+> **Requires `d810-ng >= 1.0.0b0`, which is not released yet.**
 > v1.0.0 is d810-ng's cutover release, the first to carry the plugin seam this
-> package plugs into. Discovery depends on `d810.core.plugins` and the
+> package plugs into; betas carry it until then, which is why the floor is
+> `1.0.0b0` rather than `1.0.0` — a pre-release sorts *before* its final, so
+> `>=1.0.0` would reject every beta. Discovery depends on `d810.core.plugins`
+> and the
 > `d810.backends` entry-point group; d810-ng 0.6.6 ships neither, so pip will
 > refuse to install this package against it — deliberately. Version 0.1.0
 > declared `>=0.6.6`, which pip accepted, and the result was a package that
