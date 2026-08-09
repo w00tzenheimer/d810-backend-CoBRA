@@ -1,0 +1,38 @@
+# Build outputs
+build/
+dist/
+wheelhouse/
+*.egg-info/
+.eggs/
+
+# Cython/C++ artifacts. _cobra.cpp is GENERATED from _cobra.pyx -- committing
+# it would let a stale copy silently win over an edited .pyx.
+src/d810_backend_cobra/_cobra.cpp
+*.so
+*.pyd
+*.o
+*.obj
+*.a
+*.lib
+
+# CoBRA build trees inside the submodule
+third_party/cobra/build/
+third_party/cobra/build-deps/
+third_party/cobra/build-nollvm/
+third_party/cobra/build-deps-nollvm/
+
+# Environments
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Editors / OS
+.DS_Store
+.idea/
+.vscode/

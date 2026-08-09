@@ -1,0 +1,61 @@
+[build-system]
+requires = ["setuptools>=77.0.1", "wheel", "Cython>=3.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+# Must match the PyPI Trusted Publisher registration exactly.
+name = "d810-backend-cobra"
+version = "0.1.0"
+description = "CoBRA MBA-solver backend for d810 (mba-solve)"
+readme = "README.md"
+requires-python = ">= 3.10"
+license = "MIT"
+authors = [{ name = "w00tzenheimer" }]
+keywords = ["deobfuscation", "mba", "ida-pro", "hex-rays", "cobra"]
+classifiers = [
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Security",
+]
+
+# d810 IS a hard runtime dependency, including for the entry-point target:
+# solve.py imports d810.core.getLogger, table.py needs d810.core.cache.CacheImpl
+# and d810.core.typing, convert.py/detect.py need d810.hexrays.*. Only `expr`
+# and `probe` are genuinely standalone.
+#
+# Not circular: d810 never imports this package, it only discovers it through
+# the entry point.
+#
+# Caveat worth knowing: several of these are d810 INTERNALS rather than a
+# published API (d810.core.cache, d810.core.typing), so a d810 refactor can
+# break this package without a major version bump on either side.
+dependencies = ["d810-ng>=0.6.6"]
+
+[project.optional-dependencies]
+test = ["pytest>=8.0"]
+
+[project.urls]
+Homepage = "https://github.com/w00tzenheimer/d810-backend-CoBRA"
+Issues = "https://github.com/w00tzenheimer/d810-backend-CoBRA/issues"
+
+# This is the whole integration surface. d810's BackendRegistry scans this
+# group before its builtins, so an installed copy of this package supersedes
+# anything d810 ships under the same name. The group is deliberately
+# unversioned -- the compatibility contract lives in the manifest's
+# api_version, not in the entry-point name.
+[project.entry-points."d810.backends"]
+cobra = "d810_backend_cobra:MANIFEST"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+d810_backend_cobra = ["*.pyx", "*.pxd", "cobra_shim.h"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests/unit"]

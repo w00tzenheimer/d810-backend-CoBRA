@@ -1,0 +1,117 @@
+# Build wheels for every supported platform and publish to PyPI.
+#
+# The filename matters: the PyPI Trusted Publisher for d810-backend-cobra is
+# registered against `deploy.yml` on this repository. Renaming this file breaks
+# publishing with an authentication error that looks nothing like the cause.
+name: deploy
+
+on:
+    release:
+        types: [published]
+    workflow_dispatch:
+        inputs:
+            publish:
+                description: "Upload to PyPI (otherwise build only)"
+                required: false
+                default: false
+                type: boolean
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: false
+
+jobs:
+    build_wheels:
+        name: ${{ matrix.os }}
+        runs-on: ${{ matrix.runs-on }}
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - { os: linux, runs-on: ubuntu-latest }
+                    - { os: windows, runs-on: windows-latest }
+                    - { os: macos-arm64, runs-on: macos-latest }
+                    - { os: macos-x86_64, runs-on: macos-15-intel }
+
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  submodules: recursive
+
+            # MSVC must be on PATH before CMake configures anything. `-G Ninja`
+            # with no compiler pinned takes the first compiler in PATH, which on
+            # this runner is MinGW -- that produces libabsl_*.a, which the MSVC
+            # extension can neither /WHOLEARCHIVE: nor safely link against.
+            # build_cobra.py additionally pins CMAKE_C/CXX_COMPILER=cl so a
+            # missing MSVC fails at configure rather than silently producing
+            # archives in the wrong toolchain.
+            - name: Set up MSVC
+              if: runner.os == 'Windows'
+              uses: ilammy/msvc-dev-cmd@v1
+
+            - name: cmake + ninja (manylinux container has neither)
+              if: runner.os == 'Linux'
+              run: pipx install cmake ninja || pip install cmake ninja
+
+            # NOT continue-on-error. In d810 this step was soft-failing, and
+            # because the release gate keyed off its outcome, a failed build
+            # disarmed the very check meant to catch it -- wheels shipped with
+            # no binding and CI stayed green. Here the binding IS the package,
+            # so a failure must stop the build.
+            - name: Build CoBRA static libs
+              run: python tools/build_cobra.py
+
+            - uses: pypa/cibuildwheel@v3.1
+              env:
+                  CIBW_BUILD: "cp310-* cp311-* cp312-* cp313-*"
+                  CIBW_SKIP: "*-win32 *-musllinux_*"
+                  CIBW_ENVIRONMENT: >-
+                      COBRA_ROOT=/project/third_party/cobra
+                  CIBW_ENVIRONMENT_WINDOWS: >-
+                      COBRA_ROOT=$GITHUB_WORKSPACE\\third_party\\cobra
+                  CIBW_ENVIRONMENT_MACOS: >-
+                      COBRA_ROOT=$GITHUB_WORKSPACE/third_party/cobra
+                  CIBW_BEFORE_BUILD: "pip install Cython>=3.0.0"
+                  CIBW_BEFORE_ALL_LINUX: "pip install cmake ninja"
+                  # Importing the extension is the only check that distinguishes
+                  # a working wheel from one that installs cleanly and does
+                  # nothing. Exit non-zero if the binding is absent.
+                  CIBW_TEST_COMMAND: >-
+                      python -c "from d810_backend_cobra.solve import binding_available;
+                      import sys;
+                      print('binding_available:', binding_available());
+                      sys.exit(0 if binding_available() else 1)"
+
+            - uses: actions/upload-artifact@v4
+              with:
+                  name: wheels-${{ matrix.os }}
+                  path: ./wheelhouse/*.whl
+                  retention-days: 30
+
+    build_sdist:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  submodules: recursive
+            - run: pipx run build --sdist
+            - uses: actions/upload-artifact@v4
+              with:
+                  name: sdist
+                  path: ./dist/*.tar.gz
+
+    publish:
+        needs: [build_wheels, build_sdist]
+        runs-on: ubuntu-latest
+        if: github.event_name == 'release' || inputs.publish
+        environment: pypi
+        permissions:
+            # Required for PyPI Trusted Publishing (OIDC). Without it the
+            # upload fails on permissions, not on credentials.
+            id-token: write
+        steps:
+            - uses: actions/download-artifact@v4
+              with:
+                  path: dist
+                  merge-multiple: true
+            - uses: pypa/gh-action-pypi-publish@release/v1

@@ -1,0 +1,3 @@
+[submodule "third_party/cobra"]
+	path = third_party/cobra
+	url = git@w00tz.github.com:w00tzenheimer/CoBRA.git

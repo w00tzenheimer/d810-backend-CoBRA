@@ -1,0 +1,62 @@
+# Fast PR feedback: the pure-Python half only.
+#
+# The 4-platform wheel build lives in deploy.yml behind workflow_dispatch,
+# because building CoBRA (abseil + highway + cobra-core, C++23) takes minutes
+# per platform and PRs to this package overwhelmingly touch Python.
+#
+# What this deliberately does NOT prove: that the binding builds or imports.
+# Only deploy.yml does that, and its CIBW_TEST_COMMAND is what makes a
+# binding-less wheel fail instead of shipping.
+name: ci
+
+on:
+    pull_request:
+    push:
+        branches: [main]
+
+jobs:
+    tests:
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                python: ["3.10", "3.13"]
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: actions/setup-python@v5
+              with:
+                  python-version: ${{ matrix.python }}
+
+            # d810-ng is a real runtime dependency -- solve.py, table.py,
+            # convert.py and detect.py all import it -- so the tests need it
+            # even though they never touch the compiled extension.
+            - run: pip install pytest "d810-ng>=0.6.6"
+
+            # No `pip install .` -- that would trigger the extension build and
+            # need the whole CoBRA toolchain. The solver logic under test is
+            # pure Python, so put src/ on the path directly. Tests that need
+            # the compiled extension skip themselves via binding_available().
+            - name: Run pure-Python tests
+              env:
+                  PYTHONPATH: src
+              # tests/system needs ida_hexrays and cannot run on a GitHub
+              # runner; it is exercised by d810's own Docker-IDA suite.
+              run: pytest tests/unit -q
+
+            - name: Manifest is well-formed
+              env:
+                  PYTHONPATH: src
+              run: |
+                  python - <<'PY'
+                  import d810_backend_cobra as pkg
+                  m = pkg.MANIFEST
+                  assert set(m) >= {"name", "api_version", "provides"}, m
+                  assert m["name"] == "cobra", m
+                  assert isinstance(m["api_version"], int), m
+                  # provides must stay a STRING so d810 resolves it lazily: an
+                  # incompatible d810 must be able to reject us without
+                  # importing solve.py and loading the extension.
+                  assert isinstance(m["provides"], str), m
+                  print("manifest OK:", m)
+                  PY
