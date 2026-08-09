@@ -73,15 +73,18 @@ jobs:
                   # resolves runtime dependencies. This package requires
                   # d810-ng>=0.7.0, which is not released, so that install
                   # fails on the dependency and never reaches the binding --
-                  # the gate would report a packaging fact as a build failure.
-                  # The binding does not need d810 to be exercised, so the test
-                  # install skips dependencies. pip reads PIP_NO_DEPS natively;
-                  # Cython, cmake and ninja have no dependencies of their own,
-                  # so the build steps are unaffected.
-                  PIP_NO_DEPS: "1"
-                  # Linux builds and tests run inside the manylinux container,
-                  # which does not inherit the runner's environment.
-                  CIBW_ENVIRONMENT_PASS_LINUX: PIP_NO_DEPS
+                  # reporting a packaging fact as a build failure. The binding
+                  # needs no d810 to be exercised, so the TEST install skips
+                  # dependencies (pip reads PIP_NO_DEPS natively).
+                  #
+                  # CIBW_TEST_ENVIRONMENT, not the step's `env:`. Setting
+                  # PIP_NO_DEPS at step level also applies to the action's own
+                  # bootstrap, which pip-installs cibuildwheel -- stripping its
+                  # dependencies broke it before it ever ran:
+                  #     ModuleNotFoundError: No module named 'pathspec'
+                  # This option is scoped to the test environment alone, and it
+                  # reaches the manylinux container without a PASS_LINUX entry.
+                  CIBW_TEST_ENVIRONMENT: PIP_NO_DEPS=1
                   CIBW_BUILD: "cp310-* cp311-* cp312-* cp313-*"
                   CIBW_SKIP: "*-win32 *-musllinux_*"
                   CIBW_ENVIRONMENT: >-
