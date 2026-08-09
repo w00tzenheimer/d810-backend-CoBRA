@@ -1,3 +1,11 @@
 [submodule "third_party/cobra"]
 	path = third_party/cobra
-	url = git@w00tz.github.com:w00tzenheimer/CoBRA.git
+	# Public https, deliberately. A committed URL has to work for every clone:
+	# CI runners, anonymous users, and anyone without our SSH config. A personal
+	# host alias here (git@w00tz.github.com:) resolves only on the machine that
+	# defines it, and actions/checkout fails at the very first step with
+	# "Could not resolve hostname" -- before any build output exists to hint why.
+	#
+	# Use a local, uncommitted override to push over SSH:
+	#   git config submodule.third_party/cobra.url git@w00tz.github.com:w00tzenheimer/CoBRA.git
+	url = https://github.com/w00tzenheimer/CoBRA.git
