@@ -129,7 +129,16 @@ jobs:
         needs: [build_wheels, build_sdist]
         runs-on: ubuntu-latest
         if: github.event_name == 'release' || inputs.publish
-        environment: pypi
+        # No `environment:` on purpose. The PyPI Trusted Publisher for this
+        # project is registered WITHOUT an environment, and the environment is
+        # part of what PyPI matches the OIDC token against. Declaring one here
+        # puts an `environment` claim in the token that the publisher config
+        # does not expect, and the failure surfaces as an authentication error
+        # that says nothing about environments.
+        #
+        # If a publishing environment is ever wanted (worth it -- it gates who
+        # can release independently of who can commit), register it on PyPI
+        # FIRST, then add it here. The two must agree.
         permissions:
             # Required for PyPI Trusted Publishing (OIDC). Without it the
             # upload fails on permissions, not on credentials.
