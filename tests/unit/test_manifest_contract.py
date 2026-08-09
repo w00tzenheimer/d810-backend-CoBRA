@@ -16,7 +16,7 @@ from __future__ import annotations
 import importlib
 import unittest
 
-import d810_backend_cobra as pkg
+import d810_cobra as pkg
 
 
 class TestManifestShape(unittest.TestCase):
@@ -47,7 +47,7 @@ class TestManifestShape(unittest.TestCase):
         module inside this package -- the backend would report available while
         mba-solve was silently absent.
         """
-        self.assertIn("d810_backend_cobra.rules.cobra_solve", pkg.MANIFEST["rules"])
+        self.assertIn("d810_cobra.rules.cobra_solve", pkg.MANIFEST["rules"])
 
     def test_rules_is_a_sequence_not_a_bare_string(self):
         """A bare string would iterate per-character into meaningless imports."""
@@ -79,7 +79,7 @@ class TestProbeHook(unittest.TestCase):
         from unittest import mock
 
         with mock.patch.object(self.solve, "_BINDING_AVAILABLE", False), mock.patch.object(
-            self.solve, "_BINDING_ERROR", "No module named 'd810_backend_cobra._cobra'"
+            self.solve, "_BINDING_ERROR", "No module named 'd810_cobra._cobra'"
         ):
             reason = self.solve.d810_backend_probe()
 

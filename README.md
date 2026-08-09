@@ -1,10 +1,10 @@
-# d810-backend-cobra
+# d810-cobra
 
 CoBRA MBA-solver backend for [d810](https://github.com/w00tzenheimer/d810-ng) —
 the `mba-solve` pass.
 
 ```console
-pip install d810-backend-cobra
+pip install d810-cobra
 ```
 
 That is the whole installation. d810 discovers this package automatically; no
@@ -28,7 +28,17 @@ One entry point, in the unversioned `d810.backends` group:
 
 ```toml
 [project.entry-points."d810.backends"]
-cobra = "d810_backend_cobra:MANIFEST"
+cobra = "d810_cobra:MANIFEST"
+```
+
+```python
+MANIFEST = {
+    "name": "cobra",
+    "api_version": 1,
+    "provides": "d810_cobra.solve",
+    "rules": ("d810_cobra.rules.cobra_solve",),
+    "implements": {"mba-solve": "CobraSolveRule"},
+}
 ```
 
 `MANIFEST` is a plain dict — deliberately not d810's `BackendManifest`. The
@@ -40,26 +50,46 @@ Its `provides` is a *string*, resolved lazily, so a version-incompatible d810
 rejects this backend after reading three fields — without importing `solve.py`
 and therefore without loading the compiled extension.
 
+`rules` and `implements` are what make the pass actually *run*, and each closes
+a failure that is silent without it:
+
+- **`rules`** — d810 registers its own optimizer rules by scanning
+  `d810.optimizers.__path__`. That scan is path-scoped and cannot reach a rule
+  living inside this package. Without declaring it, the backend reports
+  `available` while `CobraSolveRule` never registers — indistinguishable from a
+  pass that ran and matched nothing. d810 imports these only after the backend
+  probes usable, so a missing binding yields no rule rather than a rule that
+  raises on every call.
+- **`implements`** — d810 derives a pass's `allowed_rule_names` from it at
+  registration time, long before rules are imported; a rule outside that
+  allowlist is skipped at dispatch. Declaring it here is what let d810 stop
+  hardcoding `"CobraSolveRule"` in its own source. The key is d810's pass id
+  (`d810.core.pass_ids.PassId.MBA_SOLVE`), written as a plain string so that
+  declaring a manifest still requires no d810 import — `PassId` is a
+  `StrEnum`, so the two compare and hash identically.
+
 d810 itself is a hard dependency (`solve.py` uses `d810.core.getLogger`,
 `table.py` uses `d810.core.cache`, `convert.py`/`detect.py` use
 `d810.hexrays.*`). Some of those are d810 internals rather than a published
 API, so a d810 refactor can break this package without either side bumping a
 major version.
 
-d810's registry scans entry points before its own builtins, so an installed
-copy of this package supersedes anything d810 ships under the same name:
+d810 ships no MBA solver of its own — `cobra` is not one of its builtin
+backends — so this package supplies the `mba-solve` implementation rather than
+overriding one:
 
 ```
-cobra   available   d810-backend-cobra 0.1.0 (shadows builtin)
+cobra   available   d810-cobra 0.1.0
 ```
 
-Check it with `d810cli backends`.
+Check it with `d810cli backends`. Without this package installed, d810's
+`mba-solve` pass resolves no implementation and contributes no stages.
 
 ## Building from source
 
 ```console
-git clone --recursive https://github.com/w00tzenheimer/d810-backend-CoBRA
-cd d810-backend-CoBRA
+git clone --recursive https://github.com/w00tzenheimer/d810-CoBRA
+cd d810-CoBRA
 python tools/build_cobra.py     # abseil + highway + cobra-core (CMake + Ninja)
 pip install -e .
 ```
@@ -77,11 +107,11 @@ package exists to make impossible.
 
 | path | what |
 |---|---|
-| `src/d810_backend_cobra/expr.py` | parse/evaluate/accept — pure data, no IDA |
-| `src/d810_backend_cobra/probe.py` | locate `cobra-cli`, or report a structured skip |
-| `src/d810_backend_cobra/solve.py` | the backend entry point d810 resolves |
-| `src/d810_backend_cobra/_cobra.pyx` | Cython binding over `cobra_shim.cpp` |
-| `src/d810_backend_cobra/rules/` | the `mba-solve` peephole rule (needs d810 + Hex-Rays) |
+| `src/d810_cobra/expr.py` | parse/evaluate/accept — pure data, no IDA |
+| `src/d810_cobra/probe.py` | locate `cobra-cli`, or report a structured skip |
+| `src/d810_cobra/solve.py` | the backend entry point d810 resolves |
+| `src/d810_cobra/_cobra.pyx` | Cython binding over `cobra_shim.cpp` |
+| `src/d810_cobra/rules/` | the `mba-solve` peephole rule (needs d810 + Hex-Rays) |
 | `third_party/cobra` | pinned CoBRA submodule |
 
 Everything that touches `ida_hexrays` lives under `rules/`, so the solver core

@@ -29,16 +29,16 @@ from __future__ import annotations
 import collections
 import dataclasses
 
-from d810_backend_cobra.convert import (
+from d810_cobra.convert import (
     ReconstructionError,
     build_replacement,
     install_rewrite,
 )
-from d810_backend_cobra.detect import DEFAULT_MAX_LEAVES, detect_candidates
-from d810_backend_cobra.expr import accept_rewrite, node_count
-from d810_backend_cobra.probe import CobraProbe, find_cobra_cli
-from d810_backend_cobra.prove import ProofResult, prove_equivalent
-from d810_backend_cobra.solve import (
+from d810_cobra.detect import DEFAULT_MAX_LEAVES, detect_candidates
+from d810_cobra.expr import accept_rewrite, node_count
+from d810_cobra.probe import CobraProbe, find_cobra_cli
+from d810_cobra.prove import ProofResult, prove_equivalent
+from d810_cobra.solve import (
     SolveStatus,
     binding_available,
     solve_expression,

@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import unittest
 
-from d810_backend_cobra.table import (
+from d810_cobra.table import (
     Outcome,
     RewriteTable,
     canonical_key,
@@ -374,6 +374,6 @@ class TestBoundedAndEvicting(unittest.TestCase):
     def test_default_cap_is_sized_for_real_traffic(self):
         """A single function banked 207 entries; CacheImpl's 256 default would
         evict constantly across a whole binary."""
-        from d810_backend_cobra.table import DEFAULT_MAX_ENTRIES
+        from d810_cobra.table import DEFAULT_MAX_ENTRIES
 
         self.assertGreaterEqual(DEFAULT_MAX_ENTRIES, 4096)

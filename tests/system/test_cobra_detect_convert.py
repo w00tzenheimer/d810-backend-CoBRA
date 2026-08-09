@@ -22,12 +22,12 @@ import platform
 import ida_hexrays
 import pytest
 
-from d810_backend_cobra.convert import (
+from d810_cobra.convert import (
     ReconstructionError,
     clamp_shift_amounts,
     tree_to_ast,
 )
-from d810_backend_cobra.detect import DEFAULT_MAX_LEAVES, MbaCandidate
+from d810_cobra.detect import DEFAULT_MAX_LEAVES, MbaCandidate
 from d810.hexrays.ir.mop_snapshot import MopSnapshot
 
 

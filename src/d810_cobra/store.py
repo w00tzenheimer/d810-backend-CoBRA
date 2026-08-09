@@ -29,7 +29,7 @@ import sqlite3
 import tempfile
 from pathlib import Path
 
-from d810_backend_cobra.table import Outcome, RewriteTable, _key_to_json
+from d810_cobra.table import Outcome, RewriteTable, _key_to_json
 from d810.core import getLogger
 
 logger = getLogger(__name__)

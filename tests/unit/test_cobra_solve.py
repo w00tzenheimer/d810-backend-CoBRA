@@ -10,14 +10,14 @@ from __future__ import annotations
 
 import unittest
 
-from d810_backend_cobra.expr import (
+from d810_cobra.expr import (
     evaluate,
     node_count,
     parse_cobra_output,
     signature_of,
 )
-from d810_backend_cobra.probe import find_cobra_cli
-from d810_backend_cobra.solve import (
+from d810_cobra.probe import find_cobra_cli
+from d810_cobra.solve import (
     SolveStatus,
     binding_available,
     solve_expression,

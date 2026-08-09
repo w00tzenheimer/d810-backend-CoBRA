@@ -18,8 +18,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from d810_backend_cobra.store import ProofCacheStore, proof_cache_db_path
-from d810_backend_cobra.table import Outcome, RewriteTable
+from d810_cobra.store import ProofCacheStore, proof_cache_db_path
+from d810_cobra.table import Outcome, RewriteTable
 
 V = lambda n: {"kind": "var", "name": n}  # noqa: E731
 C = lambda v: {"kind": "const", "value": v}  # noqa: E731
@@ -177,7 +177,7 @@ class TestSingleEntryWrite(unittest.TestCase):
         self._tmp.cleanup()
 
     def test_put_entry_persists_a_single_proved_rewrite(self):
-        from d810_backend_cobra.table import Entry, canonical_key
+        from d810_cobra.table import Entry, canonical_key
 
         store = ProofCacheStore(self.db)
         key = canonical_key(TREE, 32)
@@ -190,7 +190,7 @@ class TestSingleEntryWrite(unittest.TestCase):
         self.assertEqual(entry.outcome, Outcome.PROVED)
 
     def test_put_entry_persists_a_negative(self):
-        from d810_backend_cobra.table import Entry, canonical_key
+        from d810_cobra.table import Entry, canonical_key
 
         store = ProofCacheStore(self.db)
         store.put_entry(canonical_key(DEAD, 32), Entry(Outcome.NO_REWRITE))
@@ -202,7 +202,7 @@ class TestSingleEntryWrite(unittest.TestCase):
 
     def test_put_entry_refuses_pending(self):
         """PENDING is in-flight state; evicting it must not persist it."""
-        from d810_backend_cobra.table import Entry, canonical_key
+        from d810_cobra.table import Entry, canonical_key
 
         store = ProofCacheStore(self.db)
         store.put_entry(canonical_key(TREE, 32), Entry(Outcome.PENDING))
@@ -211,7 +211,7 @@ class TestSingleEntryWrite(unittest.TestCase):
 
     def test_eviction_from_a_bounded_table_reaches_disk(self):
         """End-to-end: the wiring, not just the pieces."""
-        from d810_backend_cobra.table import RewriteTable
+        from d810_cobra.table import RewriteTable
 
         store = ProofCacheStore(self.db)
         table = RewriteTable(max_size=2, on_evict=store.put_entry)

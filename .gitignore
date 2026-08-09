@@ -7,7 +7,7 @@ wheelhouse/
 
 # Cython/C++ artifacts. _cobra.cpp is GENERATED from _cobra.pyx -- committing
 # it would let a stale copy silently win over an edited .pyx.
-src/d810_backend_cobra/_cobra.cpp
+src/d810_cobra/_cobra.cpp
 *.so
 *.pyd
 *.o

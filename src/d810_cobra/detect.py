@@ -28,7 +28,7 @@ import dataclasses
 
 import ida_hexrays
 
-from d810_backend_cobra.expr import node_count
+from d810_cobra.expr import node_count
 from d810.hexrays.ir.mop_snapshot import MopSnapshot
 
 M_MOV = ida_hexrays.m_mov

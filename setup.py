@@ -20,7 +20,7 @@ from setuptools import setup
 
 OSTYPE = platform.system()
 HERE = pathlib.Path(__file__).parent.resolve()
-PKG = HERE / "src" / "d810_backend_cobra"
+PKG = HERE / "src" / "d810_cobra"
 
 
 def _first_existing(root: pathlib.Path, candidates: tuple[str, ...]):
@@ -127,10 +127,10 @@ def get_cobra_ext_modules():
 
     return cythonize(
         Extension(
-            "d810_backend_cobra._cobra",
+            "d810_cobra._cobra",
             [
-                "src/d810_backend_cobra/_cobra.pyx",
-                "src/d810_backend_cobra/cobra_shim.cpp",
+                "src/d810_cobra/_cobra.pyx",
+                "src/d810_cobra/cobra_shim.cpp",
             ],
             language="c++",
             include_dirs=include_dirs,

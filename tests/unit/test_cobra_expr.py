@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import unittest
 
-from d810_backend_cobra.expr import (
+from d810_cobra.expr import (
     ExprParseError,
     accept_rewrite,
     evaluate,

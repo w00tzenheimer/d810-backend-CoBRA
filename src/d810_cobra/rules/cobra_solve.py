@@ -25,24 +25,24 @@ from __future__ import annotations
 
 import ida_hexrays
 
-from d810_backend_cobra.convert import ReconstructionError, build_replacement
-from d810_backend_cobra.detect import (
+from d810_cobra.convert import ReconstructionError, build_replacement
+from d810_cobra.detect import (
     DEFAULT_MAX_LEAVES,
     MbaCandidate,
     UnsupportedMicrocode,
     _TreeBuilder,
     _walk,
 )
-from d810_backend_cobra.escalate import EscalationProver
-from d810_backend_cobra.expr import accept_rewrite, node_count
-from d810_backend_cobra.prove import (
+from d810_cobra.escalate import EscalationProver
+from d810_cobra.expr import accept_rewrite, node_count
+from d810_cobra.prove import (
     INLINE_TIMEOUT_MS,
     ProofResult,
     prove_equivalent,
 )
-from d810_backend_cobra.store import ProofCacheStore, proof_cache_db_path
-from d810_backend_cobra.table import Outcome, RewriteTable
-from d810_backend_cobra.solve import (
+from d810_cobra.store import ProofCacheStore, proof_cache_db_path
+from d810_cobra.table import Outcome, RewriteTable
+from d810_cobra.solve import (
     SolveStatus,
     binding_available,
     solve_signature,

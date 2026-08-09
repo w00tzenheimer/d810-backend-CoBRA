@@ -20,14 +20,14 @@ Design and measurements:
 
 from __future__ import annotations
 
-from d810_backend_cobra.expr import (
+from d810_cobra.expr import (
     ExprParseError,
     accept_rewrite,
     evaluate,
     node_count,
     parse_cobra_output,
 )
-from d810_backend_cobra.probe import CobraProbe, CobraStatus, find_cobra_cli
+from d810_cobra.probe import CobraProbe, CobraStatus, find_cobra_cli
 
 #: What d810's BackendRegistry reads to decide whether to load us.
 #:
@@ -49,8 +49,12 @@ from d810_backend_cobra.probe import CobraProbe, CobraStatus, find_cobra_cli
 MANIFEST = {
     "name": "cobra",
     "api_version": 1,
-    "provides": "d810_backend_cobra.solve",
-    "rules": ("d810_backend_cobra.rules.cobra_solve",),
+    "provides": "d810_cobra.solve",
+    "rules": ("d810_cobra.rules.cobra_solve",),
+    # Which d810 pass our rule implements. d810 derives a pass's
+    # allowed_rule_names from this; without it d810 would have to hardcode
+    # "CobraSolveRule", which is the vendor coupling the extraction removed.
+    "implements": {"mba-solve": "CobraSolveRule"},
 }
 
 __all__ = [

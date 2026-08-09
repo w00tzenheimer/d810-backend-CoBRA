@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 # Must match the PyPI Trusted Publisher registration exactly.
-name = "d810-backend-cobra"
+name = "d810-cobra"
 version = "0.1.0"
 description = "CoBRA MBA-solver backend for d810 (mba-solve)"
 readme = "README.md"
@@ -37,8 +37,8 @@ dependencies = ["d810-ng>=0.6.6"]
 test = ["pytest>=8.0"]
 
 [project.urls]
-Homepage = "https://github.com/w00tzenheimer/d810-backend-CoBRA"
-Issues = "https://github.com/w00tzenheimer/d810-backend-CoBRA/issues"
+Homepage = "https://github.com/w00tzenheimer/d810-CoBRA"
+Issues = "https://github.com/w00tzenheimer/d810-CoBRA/issues"
 
 # This is the whole integration surface. d810's BackendRegistry scans this
 # group before its builtins, so an installed copy of this package supersedes
@@ -46,7 +46,7 @@ Issues = "https://github.com/w00tzenheimer/d810-backend-CoBRA/issues"
 # unversioned -- the compatibility contract lives in the manifest's
 # api_version, not in the entry-point name.
 [project.entry-points."d810.backends"]
-cobra = "d810_backend_cobra:MANIFEST"
+cobra = "d810_cobra:MANIFEST"
 
 [tool.setuptools]
 package-dir = { "" = "src" }
@@ -55,7 +55,7 @@ package-dir = { "" = "src" }
 where = ["src"]
 
 [tool.setuptools.package-data]
-d810_backend_cobra = ["*.pyx", "*.pxd", "cobra_shim.h"]
+d810_cobra = ["*.pyx", "*.pxd", "cobra_shim.h"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests/unit"]

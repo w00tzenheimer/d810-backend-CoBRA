@@ -14,7 +14,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from d810_backend_cobra.probe import (
+from d810_cobra.probe import (
     COBRA_CLI_ENV,
     COBRA_REQUIRED_ENV,
     COBRA_ROOT_ENV,

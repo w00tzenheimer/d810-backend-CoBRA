@@ -17,9 +17,9 @@ from __future__ import annotations
 import threading
 import unittest
 
-from d810_backend_cobra.escalate import EscalationProver
-from d810_backend_cobra.prove import ProofResult
-from d810_backend_cobra.table import Outcome, RewriteTable
+from d810_cobra.escalate import EscalationProver
+from d810_cobra.prove import ProofResult
+from d810_cobra.table import Outcome, RewriteTable
 
 V = lambda n: {"kind": "var", "name": n}  # noqa: E731
 B = lambda o, a, b: {"kind": "bin", "op": o, "a": a, "b": b}  # noqa: E731

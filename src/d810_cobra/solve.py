@@ -10,12 +10,12 @@ import dataclasses
 import enum
 import subprocess
 
-from d810_backend_cobra.expr import (
+from d810_cobra.expr import (
     ExprParseError,
     parse_cobra_output,
     signature_of,
 )
-from d810_backend_cobra.probe import CobraProbe
+from d810_cobra.probe import CobraProbe
 from d810.core import getLogger
 
 logger = getLogger(__name__)
@@ -24,7 +24,7 @@ logger = getLogger(__name__)
 DEFAULT_TIMEOUT_SECONDS = 180
 
 try:  # the in-process binding is built only when D810_BUILD_COBRA=1
-    from d810_backend_cobra import _cobra
+    from d810_cobra import _cobra
 
     _BINDING_AVAILABLE = True
     _BINDING_ERROR = ""

@@ -1,6 +1,6 @@
 # Build wheels for every supported platform and publish to PyPI.
 #
-# The filename matters: the PyPI Trusted Publisher for d810-backend-cobra is
+# The filename matters: the PyPI Trusted Publisher for d810-cobra is
 # registered against `deploy.yml` on this repository. Renaming this file breaks
 # publishing with an authentication error that looks nothing like the cause.
 name: deploy
@@ -77,7 +77,7 @@ jobs:
                   # a working wheel from one that installs cleanly and does
                   # nothing. Exit non-zero if the binding is absent.
                   CIBW_TEST_COMMAND: >-
-                      python -c "from d810_backend_cobra.solve import binding_available;
+                      python -c "from d810_cobra.solve import binding_available;
                       import sys;
                       print('binding_available:', binding_available());
                       sys.exit(0 if binding_available() else 1)"

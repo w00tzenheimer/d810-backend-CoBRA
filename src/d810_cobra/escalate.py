@@ -28,12 +28,12 @@ from __future__ import annotations
 import queue
 import threading
 
-from d810_backend_cobra.prove import (
+from d810_cobra.prove import (
     DEFAULT_TIMEOUT_MS,
     ProofResult,
     prove_equivalent,
 )
-from d810_backend_cobra.table import RewriteTable
+from d810_cobra.table import RewriteTable
 from d810.core import getLogger
 from d810.core.typing import Callable, Sequence
 

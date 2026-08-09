@@ -49,7 +49,7 @@ jobs:
                   PYTHONPATH: src
               run: |
                   python - <<'PY'
-                  import d810_backend_cobra as pkg
+                  import d810_cobra as pkg
                   m = pkg.MANIFEST
                   assert set(m) >= {"name", "api_version", "provides"}, m
                   assert m["name"] == "cobra", m

@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import unittest
 
-from d810_backend_cobra.prove import (
+from d810_cobra.prove import (
     DEFAULT_TIMEOUT_MS,
     INLINE_TIMEOUT_MS,
     ProofResult,
