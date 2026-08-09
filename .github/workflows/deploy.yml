@@ -69,6 +69,19 @@ jobs:
 
             - uses: pypa/cibuildwheel@v3.1
               env:
+                  # cibuildwheel tests a wheel by `pip install`ing it, which
+                  # resolves runtime dependencies. This package requires
+                  # d810-ng>=0.7.0, which is not released, so that install
+                  # fails on the dependency and never reaches the binding --
+                  # the gate would report a packaging fact as a build failure.
+                  # The binding does not need d810 to be exercised, so the test
+                  # install skips dependencies. pip reads PIP_NO_DEPS natively;
+                  # Cython, cmake and ninja have no dependencies of their own,
+                  # so the build steps are unaffected.
+                  PIP_NO_DEPS: "1"
+                  # Linux builds and tests run inside the manylinux container,
+                  # which does not inherit the runner's environment.
+                  CIBW_ENVIRONMENT_PASS_LINUX: PIP_NO_DEPS
                   CIBW_BUILD: "cp310-* cp311-* cp312-* cp313-*"
                   CIBW_SKIP: "*-win32 *-musllinux_*"
                   CIBW_ENVIRONMENT: >-
@@ -83,21 +96,12 @@ jobs:
                   # host-built variant linked cleanly and then failed at dlopen.
                   CIBW_BEFORE_ALL_LINUX: >-
                       pip install cmake ninja && python tools/build_cobra.py
-                  # Importing the extension is the only check that distinguishes
-                  # a working wheel from one that installs cleanly and does
-                  # nothing. Exit non-zero if the binding is absent.
-                  #
-                  # Print the captured import error, not just the boolean: a
-                  # bare "binding_available: False" says a wheel is broken
-                  # without saying whether the extension is missing or present
-                  # and unloadable -- which are different bugs with different
-                  # fixes, and the log is the only place that evidence exists.
-                  CIBW_TEST_COMMAND: >-
-                      python -c "import sys;
-                      from d810_cobra import solve;
-                      print('binding_available:', solve.binding_available());
-                      print('binding_error:', solve._BINDING_ERROR or '(none)');
-                      sys.exit(0 if solve.binding_available() else 1)"
+                  # The only check that distinguishes a working wheel from one
+                  # that installs cleanly and does nothing. It runs a real
+                  # known-answer solve rather than reading binding_available():
+                  # a compiled extension can import and still be mis-wired, and
+                  # a boolean cannot tell those apart. See tools/verify_binding.py.
+                  CIBW_TEST_COMMAND: python {project}/tools/verify_binding.py
 
             - uses: actions/upload-artifact@v4
               with:
