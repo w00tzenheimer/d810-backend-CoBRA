@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 # Must match the PyPI Trusted Publisher registration exactly.
 name = "d810-cobra"
-version = "0.1.0"
+version = "0.1.1"
 description = "CoBRA MBA-solver backend for d810 (mba-solve)"
 readme = "README.md"
 requires-python = ">= 3.10"
@@ -31,7 +31,26 @@ classifiers = [
 # Caveat worth knowing: several of these are d810 INTERNALS rather than a
 # published API (d810.core.cache, d810.core.typing), so a d810 refactor can
 # break this package without a major version bump on either side.
-dependencies = ["d810-ng>=0.6.6"]
+#
+# The floor is >=0.7.0, NOT >=0.6.6, and the difference is the whole point.
+# Being discovered at all requires d810.core.plugins (BackendRegistry, the
+# manifest protocol) and d810.backends (the `d810.backends` entry-point group
+# plus load_extension_rules). d810-ng 0.6.6 ships NEITHER --
+#
+#     >>> import d810.core.plugins
+#     ImportError: cannot import name 'plugins' from 'd810.core'
+#
+# -- so against 0.6.6 this package installs, imports, builds its binding, and
+# is then never found: mba-solve is simply absent, indistinguishable from a
+# pass that ran and matched nothing. 0.1.0 shipped with >=0.6.6 and had exactly
+# that failure.
+#
+# A floor no released d810-ng satisfies yet is deliberate. pip refusing to
+# install with a version error naming the requirement is strictly better than
+# installing something inert, and it is the same principle the build applies:
+# fail loudly rather than yield a package that installs cleanly and simplifies
+# nothing.
+dependencies = ["d810-ng>=0.7.0"]
 
 [project.optional-dependencies]
 test = ["pytest>=8.0"]
