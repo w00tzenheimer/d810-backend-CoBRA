@@ -16,14 +16,15 @@ That is the whole installation. d810 discovers this package automatically; no
 configuration, no `COBRA_ROOT`, no CMake, no C++23 toolchain on the user's
 machine.
 
-> **Requires `d810-ng >= 0.7.0`, which is not released yet.**
-> Discovery depends on `d810.core.plugins` and the `d810.backends` entry-point
-> group. d810-ng 0.6.6 ships neither, so pip will refuse to install this
-> package against it — deliberately. Version 0.1.0 declared `>=0.6.6`, which
-> pip accepted, and the result was a package that installed, built its binding,
-> and was then never discovered: `mba-solve` simply absent, indistinguishable
-> from a pass that ran and matched nothing. A loud version error beats a silent
-> no-op.
+> **Requires `d810-ng >= 1.0.0`, which is not released yet.**
+> v1.0.0 is d810-ng's cutover release, the first to carry the plugin seam this
+> package plugs into. Discovery depends on `d810.core.plugins` and the
+> `d810.backends` entry-point group; d810-ng 0.6.6 ships neither, so pip will
+> refuse to install this package against it — deliberately. Version 0.1.0
+> declared `>=0.6.6`, which pip accepted, and the result was a package that
+> installed, built its binding, and was then never discovered: `mba-solve`
+> simply absent, indistinguishable from a pass that ran and matched nothing.
+> A loud version error beats a silent no-op.
 
 ## Why it is a separate package
 
