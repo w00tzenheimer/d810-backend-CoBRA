@@ -58,7 +58,13 @@ jobs:
             # disarmed the very check meant to catch it -- wheels shipped with
             # no binding and CI stayed green. Here the binding IS the package,
             # so a failure must stop the build.
+            # Linux builds inside a manylinux container, so the libraries must
+            # be built THERE. Building them on the host and linking them in the
+            # container produced a wheel that compiled, linked, passed auditwheel
+            # and then failed to dlopen -- caught only by the import gate below.
+            # See CIBW_BEFORE_ALL_LINUX.
             - name: Build CoBRA static libs
+              if: runner.os != 'Linux'
               run: python tools/build_cobra.py
 
             - uses: pypa/cibuildwheel@v3.1
@@ -72,15 +78,26 @@ jobs:
                   CIBW_ENVIRONMENT_MACOS: >-
                       COBRA_ROOT=$GITHUB_WORKSPACE/third_party/cobra
                   CIBW_BEFORE_BUILD: "pip install Cython>=3.0.0"
-                  CIBW_BEFORE_ALL_LINUX: "pip install cmake ninja"
+                  # Built INSIDE the manylinux container, against the same
+                  # toolchain and libstdc++ that will load the extension. The
+                  # host-built variant linked cleanly and then failed at dlopen.
+                  CIBW_BEFORE_ALL_LINUX: >-
+                      pip install cmake ninja && python tools/build_cobra.py
                   # Importing the extension is the only check that distinguishes
                   # a working wheel from one that installs cleanly and does
                   # nothing. Exit non-zero if the binding is absent.
+                  #
+                  # Print the captured import error, not just the boolean: a
+                  # bare "binding_available: False" says a wheel is broken
+                  # without saying whether the extension is missing or present
+                  # and unloadable -- which are different bugs with different
+                  # fixes, and the log is the only place that evidence exists.
                   CIBW_TEST_COMMAND: >-
-                      python -c "from d810_cobra.solve import binding_available;
-                      import sys;
-                      print('binding_available:', binding_available());
-                      sys.exit(0 if binding_available() else 1)"
+                      python -c "import sys;
+                      from d810_cobra import solve;
+                      print('binding_available:', solve.binding_available());
+                      print('binding_error:', solve._BINDING_ERROR or '(none)');
+                      sys.exit(0 if solve.binding_available() else 1)"
 
             - uses: actions/upload-artifact@v4
               with:
@@ -94,7 +111,15 @@ jobs:
             - uses: actions/checkout@v4
               with:
                   submodules: recursive
+            # An sdist packs sources; it compiles nothing, so this job
+            # deliberately has no CoBRA build step. setuptools nonetheless
+            # evaluates ext_modules on every PEP 517 hook, so setup.py needs to
+            # be told that skipping the extension is intended here -- see the
+            # note on SDIST_ONLY in setup.py for why this is opt-in rather than
+            # a silent fallback.
             - run: pipx run build --sdist
+              env:
+                  D810_COBRA_SDIST_ONLY: "1"
             - uses: actions/upload-artifact@v4
               with:
                   name: sdist

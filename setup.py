@@ -157,4 +157,18 @@ def get_cobra_ext_modules():
     )
 
 
-setup(ext_modules=get_cobra_ext_modules())
+#: Building an sdist compiles nothing -- it packs sources -- but setuptools
+#: evaluates ``ext_modules`` on EVERY PEP 517 hook, including
+#: ``get_requires_for_build_sdist``, which runs before anything is packed. So
+#: ``python -m build --sdist`` demanded a fully built cobra-core just to produce
+#: a tarball, and deploy.yml's build_sdist job (which has no CoBRA build step by
+#: design) died in 8s with the "does not look built" error.
+#:
+#: Deliberately opt-IN, rather than "return [] whenever CoBRA is missing": the
+#: latter would let a *wheel* build silently produce a package with no binding.
+#: That is precisely the failure this package refuses -- a wheel that installs
+#: cleanly and simplifies nothing. Skipping the extension must require someone
+#: to say so explicitly, and only for the one artifact that cannot contain it.
+SDIST_ONLY = os.environ.get("D810_COBRA_SDIST_ONLY") == "1"
+
+setup(ext_modules=[] if SDIST_ONLY else get_cobra_ext_modules())
