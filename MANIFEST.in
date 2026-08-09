@@ -1,0 +1,12 @@
+# Build inputs that live OUTSIDE the importable package.
+#
+# setuptools builds the sdist from packages + package-data, and package-data
+# only reaches files inside a package. src/include and src/cpp are neither, so
+# without these lines the sdist would omit the header and the C++ shim -- and
+# `pip install d810-cobra` from source would fail at compile with a missing
+# cobra_shim.h. The sdist IS published (deploy.yml build_sdist), so this is not
+# hypothetical.
+include LICENSE
+include README.md
+recursive-include src/include *.h
+recursive-include src/cpp *.cpp

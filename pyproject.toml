@@ -55,7 +55,11 @@ package-dir = { "" = "src" }
 where = ["src"]
 
 [tool.setuptools.package-data]
-d810_cobra = ["*.pyx", "*.pxd", "cobra_shim.h"]
+# cobra_shim.h is no longer here: it moved to src/include, matching d810's own
+# layout. It reaches the sdist through MANIFEST.in instead -- package-data only
+# covers files inside an importable package, and a header is a build input, not
+# something a wheel consumer imports.
+d810_cobra = ["*.pyx", "*.pxd"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests/unit"]

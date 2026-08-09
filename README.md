@@ -117,7 +117,16 @@ package exists to make impossible.
 | `src/d810_cobra/solve.py` | the backend entry point d810 resolves |
 | `src/d810_cobra/_cobra.pyx` | Cython binding over `cobra_shim.cpp` |
 | `src/d810_cobra/rules/` | the `mba-solve` peephole rule (needs d810 + Hex-Rays) |
+| `src/include/cobra_shim.h` | C ABI the binding compiles against |
+| `src/cpp/cobra_shim.cpp` | C++ shim over cobra-core |
 | `third_party/cobra` | pinned CoBRA submodule |
+
+Headers and the C++ shim sit outside the package, mirroring d810's own
+`src/include`. They are build inputs, so the wheel ships only what is
+importable; `MANIFEST.in` is what carries them into the sdist. Note that
+setuptools auto-includes a declared Extension *source* but never an
+`include_dirs` header — drop `MANIFEST.in` and the sdist still contains
+`cobra_shim.cpp` while silently losing `cobra_shim.h`.
 
 Everything that touches `ida_hexrays` lives under `rules/`, so the solver core
 stays unit-testable without IDA.

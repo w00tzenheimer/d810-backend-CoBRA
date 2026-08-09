@@ -20,7 +20,17 @@ from setuptools import setup
 
 OSTYPE = platform.system()
 HERE = pathlib.Path(__file__).parent.resolve()
-PKG = HERE / "src" / "d810_cobra"
+
+#: Layout mirrors d810 itself, which keeps shared C headers in ``src/include``
+#: rather than inside the importable package. Both ``_cobra.pyx`` and
+#: ``cobra_shim.cpp`` include the header by bare name, so this must be on the
+#: include path for either to compile.
+#:
+#: Keeping them out of ``src/d810_cobra`` means the wheel ships only what is
+#: importable: the header and the C++ shim are build inputs, and a consumer who
+#: pip-installs a built wheel has no use for either.
+SRC = HERE / "src"
+INCLUDE_DIR = SRC / "include"
 
 
 def _first_existing(root: pathlib.Path, candidates: tuple[str, ...]):
@@ -64,7 +74,7 @@ def get_cobra_ext_modules():
     is_flat = flat_lib.is_dir() and any(flat_lib.glob("*cobra-core*"))
 
     if is_flat:
-        include_dirs = [str(PKG), str(flat_inc)]
+        include_dirs = [str(INCLUDE_DIR), str(flat_inc)]
         library_dirs = [str(flat_lib)]
     else:
         # Pick ONE dependency prefix and one core build; globbing several and
@@ -80,7 +90,11 @@ def get_cobra_ext_modules():
                 f"  build tree: {root}/build/lib/core + {root}/build-deps/install\n"
                 "Run: python tools/build_cobra.py"
             )
-        include_dirs = [str(PKG), str(root / "include"), str(deps_prefix / "include")]
+        include_dirs = [
+            str(INCLUDE_DIR),
+            str(root / "include"),
+            str(deps_prefix / "include"),
+        ]
         # lib vs lib64: manylinux is RHEL-based, where CMAKE_INSTALL_LIBDIR
         # defaults to lib64, so never hardcode "lib".
         library_dirs = [str(core_dir)] + [
@@ -130,7 +144,7 @@ def get_cobra_ext_modules():
             "d810_cobra._cobra",
             [
                 "src/d810_cobra/_cobra.pyx",
-                "src/d810_cobra/cobra_shim.cpp",
+                "src/cpp/cobra_shim.cpp",
             ],
             language="c++",
             include_dirs=include_dirs,
