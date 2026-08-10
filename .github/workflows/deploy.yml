@@ -29,6 +29,10 @@ jobs:
             matrix:
                 include:
                     - { os: linux, runs-on: ubuntu-latest }
+                    # aarch64 matters for real: the d810 test-runtime image is
+                    # arm64/linux, so an x86_64-only linux wheel falls through
+                    # to the sdist there and fails without LLVM present.
+                    - { os: linux-arm64, runs-on: ubuntu-24.04-arm }
                     - { os: windows, runs-on: windows-latest }
                     - { os: macos-arm64, runs-on: macos-latest }
                     - { os: macos-x86_64, runs-on: macos-15-intel }
