@@ -97,9 +97,14 @@ def proof_gate_status(
     candidate, which reads exactly like "the solver found nothing" -- so this
     exists to make the difference visible.
 
-    Advisory only.  It reports; it does not relax the gate.  Downgrading to
-    ``require_proof=False`` on a missing solver would apply unproven rewrites,
-    trading correctness for output, which is the wrong direction.
+    Advisory only: it reports the state and both ways out, and changes nothing.
+    ``require_proof=False`` is a supported setting, so running rewrites without
+    proof is the caller's decision to make; this does not flip it for them,
+    because an applied-rewrite set that silently depended on whether a solver
+    happened to be installed would be the greater surprise.
+
+    Nothing is emitted when ``require_proof`` is already False -- that user has
+    chosen, and does not need telling.
 
     *z3_present* overrides detection, for tests that must assert both paths on
     one machine.
@@ -109,10 +114,10 @@ def proof_gate_status(
         return None
     return (
         "proofs are required but z3 is unavailable, so no rewrites will be "
-        "applied. Install it with the 'install-speedups' command that ships "
-        "with d810 (it places z3-solver in ~/.d810-speedups). Setting "
-        "require_proof=false would apply solver rewrites WITHOUT proof and is "
-        "not a substitute."
+        "applied. To proceed, either install z3 with the 'install-speedups' "
+        "command that ships with d810 (it places z3-solver in "
+        "~/.d810-speedups), or set require_proof=false to apply solver "
+        "rewrites without proof."
     )
 
 

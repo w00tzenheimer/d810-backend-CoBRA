@@ -94,21 +94,37 @@ class TestProofGateStatus(unittest.TestCase):
         message = proof_gate_status(require_proof=True)
         self.assertIsNotNone(message)
 
-    def test_the_message_names_the_consequence_and_the_remedy(self):
-        """A warning that does not say what to DO is noise."""
+    def test_the_message_names_the_consequence_and_both_remedies(self):
+        """A warning that does not say what to DO is noise.
+
+        Both ways out are legitimate and the message offers them evenly:
+        install z3, or turn the gate off. Running unproven rewrites is the
+        user's call to make, so this reports the trade rather than editorialising
+        about it.
+        """
         message = proof_gate_status(require_proof=True, z3_present=False)
         assert message is not None
         self.assertIn("install-speedups", message)
         self.assertIn("no rewrites", message.lower())
+        self.assertIn("require_proof", message)
 
-    def test_missing_z3_never_silently_disables_the_proof_gate(self):
-        """Skipping is correct; applying unproven rewrites would not be.
+    def test_the_message_does_not_disparage_turning_the_gate_off(self):
+        """require_proof=false is a supported setting, not a mistake."""
+        message = proof_gate_status(require_proof=True, z3_present=False)
+        assert message is not None
+        lowered = message.lower()
+        for scold in ("not a substitute", "wrong direction", "should not", "unsafe"):
+            self.assertNotIn(scold, lowered)
 
-        Downgrading to require_proof=False on a missing solver would trade
-        correctness for output, so the status is advisory only -- it reports,
-        it does not relax the gate.
+    def test_missing_z3_never_silently_changes_the_setting(self):
+        """The status reports; it does not rewrite the user's configuration.
+
+        Auto-flipping require_proof would make the applied-rewrite set depend on
+        whether a solver happened to be installed, which is a surprise either
+        way. Whether to run unproven rewrites stays an explicit choice.
         """
         self.assertIsInstance(proof_gate_status(require_proof=True, z3_present=False), str)
+        self.assertIsNone(proof_gate_status(require_proof=False, z3_present=False))
 
 
 class TestTimeoutSemantics(unittest.TestCase):
