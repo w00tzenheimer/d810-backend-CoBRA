@@ -32,6 +32,25 @@ import enum
 # check_and_replace runs per instruction.
 z3 = None  # type: ignore[assignment]
 _Z3_AVAILABLE: bool | None = None
+#: Generation the cached answer was computed against; see _current_generation.
+_Z3_GENERATION: int = -1
+
+
+def _current_generation() -> int:
+    """d810's optional-dependency generation, or 0 if it does not publish one.
+
+    z3 can appear DURING a session: the speedups directory may be created by an
+    installer while IDA is running.  d810 bumps this counter when that happens,
+    so a cached "absent" can be detected as stale without re-attempting the
+    import on every call -- and without d810 needing to know this package
+    exists.
+    """
+    try:
+        from d810.speedups.bootstrap import optional_dependency_generation
+
+        return int(optional_dependency_generation())
+    except Exception:  # noqa: BLE001 - older d810, or none at all
+        return 0
 
 
 def _probe_z3() -> bool:
@@ -129,9 +148,11 @@ def z3_available(*, _probe=_probe_z3) -> bool:
     ``_probe`` is an injection point for tests, which must exercise both the
     present and absent paths on a single machine.
     """
-    global _Z3_AVAILABLE
-    if _Z3_AVAILABLE is None:
+    global _Z3_AVAILABLE, _Z3_GENERATION
+    generation = _current_generation()
+    if _Z3_AVAILABLE is None or generation != _Z3_GENERATION:
         _Z3_AVAILABLE = bool(_probe())
+        _Z3_GENERATION = generation
     return _Z3_AVAILABLE
 
 

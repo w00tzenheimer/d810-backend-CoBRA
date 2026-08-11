@@ -103,6 +103,7 @@ class CobraSolveRule(PeepholeSimplificationRule):
         self.maturities = [ida_hexrays.MMAT_GLBOPT2]
         self.max_leaves = DEFAULT_MAX_LEAVES
         self.require_proof = True
+        self.auto_install_solver = False
         # One table and one escalator per rule instance. Both are pure-data and
         # carry no IDA reference, so the worker thread never reaches Hex-Rays.
         #
@@ -123,6 +124,11 @@ class CobraSolveRule(PeepholeSimplificationRule):
         super().configure(kwargs)
         self.max_leaves = int(self.config.get("max_leaves", DEFAULT_MAX_LEAVES))
         self.require_proof = bool(self.config.get("require_proof", True))
+        # OFF by default, and it must stay that way. Installing runs pip, which
+        # needs the network and can take tens of seconds; doing that
+        # unprompted while IDA loads a project would freeze the UI for reasons
+        # the user never asked for. Opt in, or use the workbench action.
+        self.auto_install_solver = bool(self.config.get("auto_install_solver", False))
         names = self.config.get("maturities")
         if names:
             mapped = [_MATURITY_BY_NAME[n] for n in names if n in _MATURITY_BY_NAME]
@@ -142,10 +148,40 @@ class CobraSolveRule(PeepholeSimplificationRule):
         # configure time, rather than letting the pass look inert.
         gate_warning = proof_gate_status(self.require_proof)
         if gate_warning is not None:
-            logger.warning("cobra-solve: %s", gate_warning)
+            if self.auto_install_solver:
+                self._install_solver_support()
+                gate_warning = proof_gate_status(self.require_proof)
+            if gate_warning is not None:
+                logger.warning("cobra-solve: %s", gate_warning)
         # Only an activated rule gets configured, so this is the first point at
         # which a worker is known to be wanted. start() is idempotent.
         self.escalator.start()
+
+    def _install_solver_support(self) -> None:
+        """Install the solver d810 keeps in ~/.d810-speedups, on explicit opt-in.
+
+        d810 owns the installation because it owns the isolated directory and
+        the native-library pinning that goes with it; this only asks. On success
+        d810 bumps its optional-dependency generation, so ``z3_available()``
+        re-probes and the gate opens without restarting IDA.
+
+        Never raises: this runs during rule configuration, on the decompiler's
+        thread, where an escaping exception crosses into Hex-Rays C++.
+        """
+        try:
+            from d810.speedups.install import install_solver_support
+        except Exception:  # noqa: BLE001 - older d810 without the helper
+            logger.warning(
+                "cobra-solve: auto_install_solver is set but this d810 has no "
+                "installer; run the 'install-speedups' command instead"
+            )
+            return
+        logger.info("cobra-solve: auto_install_solver is set, installing z3...")
+        result = install_solver_support()
+        if result.ok:
+            logger.info("cobra-solve: %s", result.message)
+        else:
+            logger.warning("cobra-solve: %s", result.message)
 
     def _ensure_store(self) -> None:
         """Load the durable proof cache once, on first use.

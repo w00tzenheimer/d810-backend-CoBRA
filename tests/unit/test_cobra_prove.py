@@ -125,6 +125,34 @@ class TestLazyZ3Resolution(unittest.TestCase):
         reset_z3_detection()
         self.assertTrue(z3_available(_probe=lambda: True))
 
+    def test_a_d810_side_install_invalidates_the_cached_answer(self):
+        """An install during the session must not need an IDA restart.
+
+        d810 bumps a generation counter when optional-dependency availability
+        may have changed. Keying the cache on it means any backend self-heals
+        without d810 having to know this package exists.
+        """
+        from d810.speedups.bootstrap import invalidate_optional_dependency_cache
+
+        answers = iter([False, True])
+        probe = lambda: next(answers)  # noqa: E731
+
+        self.assertFalse(z3_available(_probe=probe))
+        invalidate_optional_dependency_cache()
+        self.assertTrue(z3_available(_probe=probe))
+
+    def test_the_generation_is_not_consulted_on_every_call(self):
+        """Re-probing per instruction would put an import attempt on the hot path."""
+        calls = []
+
+        def probe():
+            calls.append(1)
+            return True
+
+        for _ in range(5):
+            z3_available(_probe=probe)
+        self.assertEqual(len(calls), 1)
+
 
 class TestProofGateStatus(unittest.TestCase):
     """A proof gate that cannot be honoured must announce itself.
