@@ -14,13 +14,60 @@ from __future__ import annotations
 
 import enum
 
-try:  # z3-solver is optional
-    import z3
+# z3-solver is optional AND arrives late.
+#
+# It is not on sys.path when the interpreter starts inside IDA. d810 puts it
+# there: importing d810 runs ensure_speedups_on_path(), which prepends
+# ~/.d810-speedups and pins the matching native libz3 through
+# builtins.Z3_LIB_DIRS.
+#
+# So a module-scope `import z3` answered a question about IMPORT ORDER rather
+# than about the environment. Importing this module before d810 pinned
+# availability False for the life of the process, and with require_proof=True
+# that skips every candidate and applies nothing -- indistinguishable from "the
+# solver matched nothing" (d81-ni1k). It also made installing z3 at runtime
+# useless, since the answer could not change without restarting IDA.
+#
+# Resolved on first use and cached. The cache is what keeps the hot path cheap:
+# check_and_replace runs per instruction.
+z3 = None  # type: ignore[assignment]
+_Z3_AVAILABLE: bool | None = None
 
-    _Z3_AVAILABLE = True
-except ImportError:  # pragma: no cover - depends on environment
-    z3 = None  # type: ignore[assignment]
-    _Z3_AVAILABLE = False
+
+def _probe_z3() -> bool:
+    """Attempt the import now, binding the module for the proof helpers.
+
+    Installs the speedups path itself rather than relying on someone having
+    imported d810 first.  ``ensure_speedups_on_path`` is idempotent and cheap
+    (a directory check plus at most one ``sys.path`` insert), and calling it
+    here is what makes availability a fact about the ENVIRONMENT instead of a
+    fact about import order.  d810 is a hard dependency of this package, so the
+    import is always legitimate; it is still guarded because a broken or
+    partial d810 must not turn "no proofs" into an exception on the hot path.
+    """
+    global z3
+    try:
+        from d810.speedups.bootstrap import ensure_speedups_on_path
+
+        ensure_speedups_on_path()
+    except Exception:  # noqa: BLE001 - absence is a valid answer, not an error
+        pass
+    try:
+        import z3 as _z3
+    except ImportError:  # pragma: no cover - depends on environment
+        return False
+    z3 = _z3
+    return True
+
+
+def reset_z3_detection() -> None:
+    """Forget the cached answer so the next query re-probes.
+
+    Called after installing solver support at runtime: without it the process
+    would keep serving the pre-install answer until IDA restarts.
+    """
+    global _Z3_AVAILABLE
+    _Z3_AVAILABLE = None
 
 
 class ProofResult(enum.Enum):
@@ -76,7 +123,15 @@ DEFAULT_TIMEOUT_MS = 120_000
 INLINE_TIMEOUT_MS = 1500
 
 
-def z3_available() -> bool:
+def z3_available(*, _probe=_probe_z3) -> bool:
+    """Is z3 importable right now? Probed once, then cached.
+
+    ``_probe`` is an injection point for tests, which must exercise both the
+    present and absent paths on a single machine.
+    """
+    global _Z3_AVAILABLE
+    if _Z3_AVAILABLE is None:
+        _Z3_AVAILABLE = bool(_probe())
     return _Z3_AVAILABLE
 
 
@@ -109,7 +164,7 @@ def proof_gate_status(
     *z3_present* overrides detection, for tests that must assert both paths on
     one machine.
     """
-    present = _Z3_AVAILABLE if z3_present is None else z3_present
+    present = z3_available() if z3_present is None else z3_present
     if not require_proof or present:
         return None
     return (
@@ -170,7 +225,7 @@ def prove_equivalent(
     exception escapes the rule into the Hex-Rays C++ callback and takes the
     process down with SIGSEGV.  Measured: EXIT=139 after two applications.
     """
-    if not _Z3_AVAILABLE:
+    if not z3_available():
         return ProofResult.UNAVAILABLE
 
     env = {

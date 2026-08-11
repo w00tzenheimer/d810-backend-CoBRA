@@ -17,6 +17,7 @@ from d810_cobra.prove import (
     ProofResult,
     proof_gate_status,
     prove_equivalent,
+    reset_z3_detection,
     z3_available,
 )
 
@@ -62,6 +63,67 @@ class TestInlineBudget(unittest.TestCase):
     def test_inline_budget_stays_below_the_saturation_point(self):
         """Past 1500ms the sweep bought zero extra proofs for 2.5x the time."""
         self.assertLessEqual(INLINE_TIMEOUT_MS, 1500)
+
+
+class TestLazyZ3Resolution(unittest.TestCase):
+    """Availability must reflect sys.path at USE time, not at import time.
+
+    z3 is not on sys.path when the interpreter starts inside IDA.  d810 puts it
+    there: importing d810 runs ensure_speedups_on_path(), which prepends
+    ~/.d810-speedups and pins the native libz3 via builtins.Z3_LIB_DIRS.
+
+    Snapshotting `import z3` at module scope therefore made the answer depend on
+    whether d810 had been imported first.  Import this module too early and
+    availability was pinned False for the life of the process; with
+    require_proof=True that skips every candidate and applies nothing, which is
+    indistinguishable from "the solver matched nothing" (d81-ni1k).
+
+    It also makes installing z3 at runtime pointless -- the answer could never
+    change without restarting IDA, which is what the opt-in installer needs.
+    """
+
+    def setUp(self):
+        reset_z3_detection()
+        self.addCleanup(reset_z3_detection)
+
+    def test_availability_is_recomputed_after_a_reset(self):
+        """A reset must actually re-probe rather than serve a stale answer."""
+        seen = []
+
+        def probe():
+            seen.append(1)
+            return True
+
+        self.assertTrue(z3_available(_probe=probe))
+        self.assertEqual(len(seen), 1)
+
+    def test_result_is_cached_so_the_hot_path_does_not_re_import(self):
+        """check_and_replace runs per instruction; probing each time is waste."""
+        calls = []
+
+        def probe():
+            calls.append(1)
+            return True
+
+        z3_available(_probe=probe)
+        z3_available(_probe=probe)
+        z3_available(_probe=probe)
+        self.assertEqual(len(calls), 1)
+
+    def test_a_negative_result_is_not_cached_forever(self):
+        """The installer's whole point is that 'absent' can become 'present'."""
+        answers = iter([False, True])
+        probe = lambda: next(answers)  # noqa: E731
+
+        self.assertFalse(z3_available(_probe=probe))
+        reset_z3_detection()
+        self.assertTrue(z3_available(_probe=probe))
+
+    def test_import_order_no_longer_decides_the_answer(self):
+        """The regression: prove imported before d810 pinned this False."""
+        self.assertFalse(z3_available(_probe=lambda: False))
+        reset_z3_detection()
+        self.assertTrue(z3_available(_probe=lambda: True))
 
 
 class TestProofGateStatus(unittest.TestCase):
