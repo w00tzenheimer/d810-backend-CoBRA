@@ -1,6 +1,6 @@
 """Escalation-prover tests.
 
-The escalation prover re-proves candidates that the inline 500ms budget could
+The escalation prover re-proves candidates that the inline 1500ms budget could
 not settle, using the generous off-path budget, and writes results into the
 table so the next decompile gets them for free.
 

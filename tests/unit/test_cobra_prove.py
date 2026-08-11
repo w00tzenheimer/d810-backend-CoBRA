@@ -36,13 +36,31 @@ class TestInlineBudget(unittest.TestCase):
         self.assertLess(INLINE_TIMEOUT_MS, DEFAULT_TIMEOUT_MS)
 
     def test_inline_budget_matches_the_measured_knee(self):
-        """500ms was chosen from data, not taste.
+        """1500ms was chosen from data, not taste, on two functions.
 
-        Sorted proof times (ms) over the 14 accepted candidates:
+        VM_DecryptPacket, sorted proof times (ms) over 14 accepted candidates:
         0 1 3 8 115 197 284 440 701 1611 6213 18554 68113 93610.
-        500ms keeps 8/14 for 4.05s; 1000ms buys one more proof for +2.7s.
+        500ms keeps 8/14 for 4.05s; 1000ms buys one more for +2.7s; 2000ms
+        buys two more for +7.3s.
+
+        sub_7FF85A852A00, 13 accepted candidates, timeout swept:
+            500ms ->  7 proved,  6 starved,  3.62s
+           1500ms ->  9 proved,  4 starved,  8.32s
+           4000ms ->  9 proved,  4 starved, 20.75s
+        The gain SATURATES at 1500ms: 4000ms buys nothing for 2.5x the time,
+        so the remaining 4 are genuinely hard rather than clipped.  Both
+        datasets agree that ~1500ms buys about two proofs for about +5s.
+
+        Raising it costs first-pass latency only.  A starved proof is not
+        lost: it escalates to DEFAULT_TIMEOUT_MS off the critical path, lands
+        in the rewrite table, and is flushed to the durable proof cache, so a
+        later decompile applies it as a table hit with no inline proof at all.
         """
-        self.assertEqual(INLINE_TIMEOUT_MS, 500)
+        self.assertEqual(INLINE_TIMEOUT_MS, 1500)
+
+    def test_inline_budget_stays_below_the_saturation_point(self):
+        """Past 1500ms the sweep bought zero extra proofs for 2.5x the time."""
+        self.assertLessEqual(INLINE_TIMEOUT_MS, 1500)
 
 
 class TestTimeoutSemantics(unittest.TestCase):

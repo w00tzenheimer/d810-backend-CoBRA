@@ -48,12 +48,32 @@ DEFAULT_TIMEOUT_MS = 120_000
 #: 98% of total proof time sits in 4 of those 14, so a tight budget sheds
 #: almost all the cost and little of the value: 500ms keeps 8/14 for 4.05s of
 #: inline time, while 1000ms buys exactly one more proof for +2.7s and 2000ms
-#: buys two more for +7.3s.  500ms is the knee.
+#: buys two more for +7.3s.
 #:
-#: Shortening this is SAFE but not free: a starved proof yields UNKNOWN, which
-#: the caller must treat as "skip", so the cost is coverage.  Anything that
-#: still needs proving escalates to DEFAULT_TIMEOUT_MS off the critical path.
-INLINE_TIMEOUT_MS = 500
+#: A second sweep, on sub_7FF85A852A00 (13 accepted candidates, measured
+#: against baseline gen_microcode at MMAT_GLBOPT2), located the saturation
+#: point that the first ladder stopped short of:
+#:
+#:      500ms ->  7 proved,  6 starved,   3.62s
+#:     1500ms ->  9 proved,  4 starved,   8.32s
+#:     4000ms ->  9 proved,  4 starved,  20.75s
+#:
+#: The gain SATURATES at 1500ms: 4000ms buys nothing for 2.5x the time, so the
+#: four that remain are genuinely hard rather than clipped.  Both functions
+#: agree that ~1500ms buys about two more proofs for about +5s, which is why
+#: the budget sits there rather than at the earlier 500ms.
+#:
+#: Counts near the wall jitter by one -- repeat runs of the same sweep gave 6
+#: and 7 proofs at 500ms -- so treat +/-1 as noise and the saturation point,
+#: not the absolute count, as the signal.
+#:
+#: Raising this costs FIRST-PASS LATENCY, not capability, and only on a cold
+#: cache.  A starved proof yields UNKNOWN, which the caller treats as "skip",
+#: but it escalates to DEFAULT_TIMEOUT_MS off the critical path, lands in the
+#: rewrite table, and is flushed to the durable proof cache -- so a later
+#: decompile applies it as a table hit with no inline proof at all.  Starved
+#: means deferred, not lost.
+INLINE_TIMEOUT_MS = 1500
 
 
 def z3_available() -> bool:

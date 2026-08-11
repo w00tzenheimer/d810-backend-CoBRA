@@ -1,6 +1,6 @@
 """Re-prove starved candidates off the critical path.
 
-The inline budget (``INLINE_TIMEOUT_MS``, 500ms) settles most proofs but not
+The inline budget (``INLINE_TIMEOUT_MS``, 1500ms) settles most proofs but not
 all: measured on VM_DecryptPacket, 98% of total proof time sat in 4 of 14
 proofs, with the worst at 93.6 seconds.  Those four are exactly what this
 module absorbs -- they are re-proved at ``DEFAULT_TIMEOUT_MS`` on a worker
