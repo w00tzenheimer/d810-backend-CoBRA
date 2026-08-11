@@ -38,6 +38,7 @@ from d810_cobra.expr import accept_rewrite, node_count
 from d810_cobra.prove import (
     INLINE_TIMEOUT_MS,
     ProofResult,
+    proof_gate_status,
     prove_equivalent,
 )
 from d810_cobra.store import ProofCacheStore, proof_cache_db_path
@@ -136,6 +137,12 @@ class CobraSolveRule(PeepholeSimplificationRule):
             "cobra-solve configured: maturities=%s max_leaves=%d proof=%s",
             self.maturities, self.max_leaves, self.require_proof,
         )
+        # A proof gate that cannot be honoured skips every candidate, which is
+        # indistinguishable from "the solver matched nothing". Say so once, at
+        # configure time, rather than letting the pass look inert.
+        gate_warning = proof_gate_status(self.require_proof)
+        if gate_warning is not None:
+            logger.warning("cobra-solve: %s", gate_warning)
         # Only an activated rule gets configured, so this is the first point at
         # which a worker is known to be wanted. start() is idempotent.
         self.escalator.start()

@@ -80,6 +80,42 @@ def z3_available() -> bool:
     return _Z3_AVAILABLE
 
 
+def proof_gate_status(
+    require_proof: bool, *, z3_present: bool | None = None
+) -> str | None:
+    """Warning text when a requested proof gate cannot be honoured, else None.
+
+    z3 is deliberately NOT a dependency of this package.  d810 installs it into
+    a private directory (``~/.d810-speedups``) with ``install-speedups`` and
+    prepends that to ``sys.path``, pinning both the wheel and the native
+    ``libz3`` it loads.  A second ``z3-solver`` in IDA's site-packages would let
+    path order decide which Python wrapper pairs with which native library, and
+    a mismatched pair is a crash rather than an ImportError.
+
+    The cost of that isolation is a reachable state where everything installs
+    cleanly and no proof can be produced.  ``require_proof`` then skips EVERY
+    candidate, which reads exactly like "the solver found nothing" -- so this
+    exists to make the difference visible.
+
+    Advisory only.  It reports; it does not relax the gate.  Downgrading to
+    ``require_proof=False`` on a missing solver would apply unproven rewrites,
+    trading correctness for output, which is the wrong direction.
+
+    *z3_present* overrides detection, for tests that must assert both paths on
+    one machine.
+    """
+    present = _Z3_AVAILABLE if z3_present is None else z3_present
+    if not require_proof or present:
+        return None
+    return (
+        "proofs are required but z3 is unavailable, so no rewrites will be "
+        "applied. Install it with the 'install-speedups' command that ships "
+        "with d810 (it places z3-solver in ~/.d810-speedups). Setting "
+        "require_proof=false would apply solver rewrites WITHOUT proof and is "
+        "not a substitute."
+    )
+
+
 def _to_z3(tree: dict, env: dict, bits: int, ctx=None):
     kind = tree["kind"]
     if kind == "const":

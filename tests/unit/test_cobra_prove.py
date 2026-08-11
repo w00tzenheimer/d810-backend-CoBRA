@@ -15,6 +15,7 @@ from d810_cobra.prove import (
     DEFAULT_TIMEOUT_MS,
     INLINE_TIMEOUT_MS,
     ProofResult,
+    proof_gate_status,
     prove_equivalent,
     z3_available,
 )
@@ -61,6 +62,53 @@ class TestInlineBudget(unittest.TestCase):
     def test_inline_budget_stays_below_the_saturation_point(self):
         """Past 1500ms the sweep bought zero extra proofs for 2.5x the time."""
         self.assertLessEqual(INLINE_TIMEOUT_MS, 1500)
+
+
+class TestProofGateStatus(unittest.TestCase):
+    """A proof gate that cannot be honoured must announce itself.
+
+    z3 is not a dependency of this package: d810 installs it into a private
+    directory (``~/.d810-speedups``) via ``install-speedups`` and prepends that
+    to sys.path, pinning both the wheel and the native libz3.  Declaring
+    z3-solver here would put a second copy in IDA's site-packages and let
+    sys.path order decide which Python wrapper pairs with which libz3.
+
+    The cost of that isolation is that a user can install everything and still
+    have no z3.  With require_proof=True every candidate is then skipped, which
+    is indistinguishable from "nothing matched" -- the same silent inertness
+    that made mba-solve look like a no-op before.
+    """
+
+    def test_no_warning_when_proofs_can_be_produced(self):
+        if not z3_available():
+            self.skipTest("needs z3 present to assert the quiet path")
+        self.assertIsNone(proof_gate_status(require_proof=True))
+
+    def test_no_warning_when_the_caller_did_not_ask_for_proofs(self):
+        """require_proof=False is a deliberate choice, not a broken install."""
+        self.assertIsNone(proof_gate_status(require_proof=False))
+
+    def test_warns_when_proof_required_but_z3_is_absent(self):
+        if z3_available():
+            self.skipTest("needs z3 absent to assert the loud path")
+        message = proof_gate_status(require_proof=True)
+        self.assertIsNotNone(message)
+
+    def test_the_message_names_the_consequence_and_the_remedy(self):
+        """A warning that does not say what to DO is noise."""
+        message = proof_gate_status(require_proof=True, z3_present=False)
+        assert message is not None
+        self.assertIn("install-speedups", message)
+        self.assertIn("no rewrites", message.lower())
+
+    def test_missing_z3_never_silently_disables_the_proof_gate(self):
+        """Skipping is correct; applying unproven rewrites would not be.
+
+        Downgrading to require_proof=False on a missing solver would trade
+        correctness for output, so the status is advisory only -- it reports,
+        it does not relax the gate.
+        """
+        self.assertIsInstance(proof_gate_status(require_proof=True, z3_present=False), str)
 
 
 class TestTimeoutSemantics(unittest.TestCase):
